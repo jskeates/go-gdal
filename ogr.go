@@ -11,6 +11,7 @@ package gdal
 */
 import "C"
 import (
+	"fmt"
 	"reflect"
 	"time"
 	"unsafe"
@@ -46,6 +47,69 @@ const (
 	GT_MultiPolygon25D       = GeometryType(C.wkbMultiPolygon25D)
 	GT_GeometryCollection25D = GeometryType(C.wkbGeometryCollection25D)
 )
+
+/* -------------------------------------------------------------------- */
+/*      Error constants                                                 */
+/* -------------------------------------------------------------------- */
+type CPLErrorCode int64
+
+type CPLError struct {
+	msg  string
+	code CPLErrorCode
+}
+
+const (
+	CPLE_None            = CPLErrorCode(C.CPLE_None)
+	CPLE_AppDefined      = CPLErrorCode(C.CPLE_AppDefined)
+	CPLE_OutOfMemory     = CPLErrorCode(C.CPLE_OutOfMemory)
+	CPLE_FileIO          = CPLErrorCode(C.CPLE_FileIO)
+	CPLE_OpenFailed      = CPLErrorCode(C.CPLE_OpenFailed)
+	CPLE_IllegalArg      = CPLErrorCode(C.CPLE_IllegalArg)
+	CPLE_NotSupported    = CPLErrorCode(C.CPLE_NotSupported)
+	CPLE_AssertionFailed = CPLErrorCode(C.CPLE_AssertionFailed)
+	CPLE_NoWriteAccess   = CPLErrorCode(C.CPLE_NoWriteAccess)
+	CPLE_UserInterrupt   = CPLErrorCode(C.CPLE_UserInterrupt)
+	CPLE_ObjectNull      = CPLErrorCode(C.CPLE_ObjectNull)
+)
+
+func (e CPLError) Error() string {
+	if e.msg == "" {
+		return stringifyCPLErrorCode(e.code)
+	} else {
+		return fmt.Sprintf("%s: %s", stringifyCPLErrorCode(e.code), e.msg)
+	}
+}
+
+func stringifyCPLErrorCode(code CPLErrorCode) string {
+	switch code {
+	//CPLE_AppDefined is too generic, we let it fall through
+	case CPLE_OutOfMemory:
+		return "the process ran out of memory before the operation completed"
+	case CPLE_FileIO:
+		return "a file IO error occurred"
+	case CPLE_OpenFailed:
+		return "the file could not be opened"
+	case CPLE_IllegalArg:
+		return "an illegal argument was given"
+	case CPLE_NotSupported:
+		return "the operation is not supported"
+	case CPLE_AssertionFailed:
+		return "an assertion failed"
+	case CPLE_NoWriteAccess:
+		return "we don't have permission to write to the file"
+	case CPLE_UserInterrupt:
+		return "the user interrupted the operation"
+	case CPLE_ObjectNull:
+		return "the given object is null"
+	}
+	return "an error occurred"
+}
+
+func getLastCPLError() CPLError {
+	errorNo := CPLErrorCode(C.CPLGetLastErrorNo())
+	errorMsg := C.GoString(C.CPLGetLastErrorMsg())
+	return CPLError{msg: errorMsg, code: errorNo}
+}
 
 /* -------------------------------------------------------------------- */
 /*      Envelope functions                                              */
@@ -1559,11 +1623,14 @@ func (ds DataSource) LayerByIndex(index int) Layer {
 }
 
 // Fetch a layer of this data source by name
-func (ds DataSource) LayerByName(name string) Layer {
+func (ds DataSource) LayerByName(name string) (Layer, error) {
 	cString := C.CString(name)
 	defer C.free(unsafe.Pointer(cString))
 	layer := C.OGR_DS_GetLayerByName(ds.cval, cString)
-	return Layer{layer}
+	if layer == nil {
+		return Layer{layer}, getLastCPLError()
+	}
+	return Layer{layer}, nil
 }
 
 // Delete the layer from the data source
