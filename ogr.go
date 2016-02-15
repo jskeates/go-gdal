@@ -779,6 +779,14 @@ func (geom Geometry) BuildPolygonFromEdges(autoClose bool, tolerance float64) (G
 	return Geometry{newGeom}, cErr.Err()
 }
 
+func (geom Geometry) IsNull() bool {
+	if geom.cval == nil {
+		return true
+	} else {
+		return false
+	}
+}
+
 /* -------------------------------------------------------------------- */
 /*      Field definition functions                                      */
 /* -------------------------------------------------------------------- */
@@ -1343,6 +1351,14 @@ func (feature Feature) StlyeString() string {
 func (feature Feature) SetStyleString(style string) {
 	cStyle := C.CString(style)
 	C.OGR_F_SetStyleStringDirectly(feature.cval, cStyle)
+}
+
+func (feature Feature) IsNull() bool {
+	if feature.cval == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 /* -------------------------------------------------------------------- */
