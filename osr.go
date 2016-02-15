@@ -11,6 +11,7 @@ package gdal
 */
 import "C"
 import (
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -625,7 +626,12 @@ func (sr SpatialReference) SetStatePlaneWithUnits(
 
 // Set EPSG authority info if possible
 func (sr SpatialReference) AutoIdentifyEPSG() error {
-	return C.OSRAutoIdentifyEPSG(sr.cval).Err()
+	errorCode := int(C.OSRAutoIdentifyEPSG(sr.cval))
+	if errorCode != 0 {
+		return fmt.Errorf("Error code %d", errorCode)
+	} else {
+		return nil
+	}
 }
 
 // Return true if EPSG feels this coordinate system should be treated as having lat/long coordinate ordering
