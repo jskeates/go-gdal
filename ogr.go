@@ -493,12 +493,20 @@ func (geom Geometry) SetSpatialReference(spatialRef SpatialReference) {
 
 // Apply coordinate transformation to geometry
 func (geom Geometry) Transform(ct CoordinateTransform) error {
-	return C.OGR_G_Transform(geom.cval, ct.cval).Err()
+	errorCode := int(C.OGR_G_Transform(geom.cval, ct.cval))
+	if errorCode != 0 {
+		return fmt.Errorf("error code %d", errorCode)
+	}
+	return nil
 }
 
 // Transform geometry to new spatial reference system
 func (geom Geometry) TransformTo(sr SpatialReference) error {
-	return C.OGR_G_TransformTo(geom.cval, sr.cval).Err()
+	errorCode := int(C.OGR_G_TransformTo(geom.cval, sr.cval))
+	if errorCode != 0 {
+		return fmt.Errorf("error code %d", errorCode)
+	}
+	return nil
 }
 
 // Simplify the geometry
