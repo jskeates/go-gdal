@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
+    "errors"
 )
 
 func init() {
@@ -71,6 +72,8 @@ const (
 	CPLE_UserInterrupt   = CPLErrorCode(C.CPLE_UserInterrupt)
 	CPLE_ObjectNull      = CPLErrorCode(C.CPLE_ObjectNull)
 )
+
+var ErrorEOL = errors.New("EOL")
 
 func (e CPLError) Error() string {
 	if e.msg == "" {
@@ -1421,9 +1424,12 @@ func (layer Layer) ResetReading() {
 }
 
 // Fetch the next available feature from this layer
-func (layer Layer) NextFeature() Feature {
+func (layer Layer) NextFeature() (Feature, error) {
 	feature := C.OGR_L_GetNextFeature(layer.cval)
-	return Feature{feature}
+    if feature == nil {
+        return Feature{}, ErrorEOL
+    }
+	return Feature{feature}, nil
 }
 
 // Move read cursor to the provided index
